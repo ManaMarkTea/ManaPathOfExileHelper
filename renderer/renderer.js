@@ -142,11 +142,16 @@ function renderResult(res) {
     }
 
     const parts = [`based on ${res.fetched} of ${res.total} live listing${res.total === 1 ? '' : 's'}`];
-    if (res.approximate) {
+    if (res.item.slot === 'weapon') {
+      parts.push('matched by DPS + item level');
+    } else if (res.approximate) {
+      const extras = [];
+      if (res.item.itemLevel) extras.push('item level');
+      if (res.item.slot === 'chest' && res.item.links > 0) extras.push(`${res.item.links}-link`);
       parts.push(
         res.statsMatched > 0
           ? `matched ${res.statsMatched}/${res.statsAvailable} mods - approximate`
-          : 'broad match on item type only - approximate'
+          : `${extras.length ? `matched on ${extras.join(' + ')} only` : 'broad match on item type only'} - approximate`
       );
     }
     el.suggestionSub.textContent = parts.join(', ');
@@ -157,6 +162,9 @@ function renderResult(res) {
 
   el.listings.innerHTML = '';
   for (const l of res.listings) {
+    const card = document.createElement('div');
+    card.className = 'listing-card';
+
     const row = document.createElement('div');
     row.className = 'listing-row';
     const name = document.createElement('span');
@@ -166,7 +174,33 @@ function renderResult(res) {
     price.textContent = formatPrice(l);
     row.appendChild(name);
     row.appendChild(price);
-    el.listings.appendChild(row);
+    card.appendChild(row);
+
+    const metaBits = [];
+    if (l.ilvl) metaBits.push(`ilvl ${l.ilvl}`);
+    if (l.links >= 4) metaBits.push(`${l.links}-link`);
+    if (l.dps) metaBits.push(`${l.dps} dps`);
+    if (metaBits.length) {
+      const meta = document.createElement('div');
+      meta.className = 'listing-meta';
+      meta.textContent = metaBits.join(' · ');
+      card.appendChild(meta);
+    }
+
+    if (l.mods && l.mods.length) {
+      const details = document.createElement('div');
+      details.className = 'listing-mods hidden';
+      for (const mod of l.mods) {
+        const line = document.createElement('div');
+        line.textContent = mod;
+        details.appendChild(line);
+      }
+      card.appendChild(details);
+      row.classList.add('expandable');
+      row.addEventListener('click', () => details.classList.toggle('hidden'));
+    }
+
+    el.listings.appendChild(card);
   }
 
   lastTradeUrl = res.tradeUrl;

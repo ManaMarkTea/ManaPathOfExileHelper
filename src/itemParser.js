@@ -8,6 +8,23 @@ function stripRollRange(line) {
   return line.replace(/\(\s*[\d.]+\s*-\s*[\d.]+\s*\)/g, '').replace(/\s{2,}/g, ' ').trim();
 }
 
+// What "slot" an item occupies drives how we price-match it: chests skip life and add a
+// links filter, weapons match on DPS instead of affixes, everything else matches affixes.
+function classifySlot(itemClass) {
+  if (itemClass === 'Body Armours') return 'chest';
+  if (/Axes|Swords|Maces|Daggers|Claws|Wands|Bows|Staves|Sceptres|Rune Daggers|Fishing Rods|Quarterstaves|Crossbows|Spears|Flails/i.test(itemClass)) {
+    return 'weapon';
+  }
+  if (/Helmets|Gloves|Boots|Shields|Bucklers/i.test(itemClass)) return 'armor';
+  if (/Amulets|Rings|Belts/i.test(itemClass)) return 'jewellery';
+  return 'other';
+}
+
+function parseDamageRange(line) {
+  const m = line && line.match(/([\d.]+)\s*-\s*([\d.]+)/);
+  return m ? [parseFloat(m[1]), parseFloat(m[2])] : null;
+}
+
 function stripSections(text) {
   return text
     .replace(/\r\n/g, '\n')
@@ -48,6 +65,8 @@ function parseItem(rawText) {
     gemLevel: null,
     links: 0,
     mods: [],
+    weapon: null,
+    slot: classifySlot(itemClass),
     raw: rawText,
   };
 
@@ -89,6 +108,20 @@ function parseItem(rawText) {
         item.gemLevel = parseInt(gemLevelLine.match(/\d+/)[0], 10);
         continue;
       }
+    }
+
+    // Weapon damage property block: "Physical Damage: X-Y", "Elemental Damage: X-Y",
+    // "Attacks per Second: Z". These are the item's own combined (base + mods) totals as
+    // PoE displays them, not affixes - used for DPS-based matching instead of mod matching.
+    const apsLine = lines.find((l) => /^Attacks per Second:\s*[\d.]+/.test(l));
+    if (item.slot === 'weapon' && apsLine) {
+      item.weapon = {
+        aps: parseFloat(apsLine.match(/[\d.]+/)[0]),
+        phys: parseDamageRange(lines.find((l) => /^Physical Damage:/.test(l))),
+        elem: parseDamageRange(lines.find((l) => /^Elemental Damage:/.test(l))),
+        chaos: parseDamageRange(lines.find((l) => /^Chaos Damage:/.test(l))),
+      };
+      continue;
     }
 
     // Only uniques carry prose flavour text, and it's always its own section with no

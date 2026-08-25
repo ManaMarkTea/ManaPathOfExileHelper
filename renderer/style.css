@@ -203,17 +203,40 @@ button#checkBtn:disabled { background: #3a3a40; color: #888; border-color: #555;
   gap: 4px;
 }
 
+.listing-card {
+  background: #16161b;
+  border: 1px solid #26262e;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
 .listing-row {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
   padding: 4px 6px;
-  background: #16161b;
-  border: 1px solid #26262e;
-  border-radius: 4px;
 }
 
+.listing-row.expandable { cursor: pointer; }
+.listing-row.expandable:hover { background: #1c1c23; }
+
 .listing-row .price { color: var(--gold); font-weight: 600; }
+
+.listing-meta {
+  font-size: 10px;
+  color: #8f8a7c;
+  padding: 0 6px 4px;
+}
+
+.listing-mods {
+  font-size: 11px;
+  color: var(--mod-text);
+  padding: 2px 6px 6px;
+  border-top: 1px solid #26262e;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
 
 button.link-btn {
   background: none;

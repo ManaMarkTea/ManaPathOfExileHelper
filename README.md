@@ -11,12 +11,25 @@ authenticated session, and this app never does that.
 
 ## How it works
 
-1. **Parse** the clipboard text into item name, base type, rarity, and mods (handles
-   both the normal item text and the "Advanced Mod Descriptions" client option).
-2. **Match** each rolled mod to its official trade-site stat ID.
-3. **Search** live listings requiring those mods. If too few results come back, it
-   automatically drops mods one at a time and re-searches until it finds a comparable
-   sample - the result is flagged "approximate" whenever it had to broaden.
+1. **Parse** the clipboard text into item name, base type, rarity, item level, sockets,
+   and mods (handles both the normal item text and the "Advanced Mod Descriptions"
+   client option).
+2. **Match** how the item is searched to what actually drives its price, by slot:
+   - Always filters by base type, rarity, and a minimum item level.
+   - **Weapons** match on estimated DPS instead of individual affixes - a weapon's
+     specific mod combo rarely repeats, but comparable damage output does.
+   - **Body armour** always requires the item's own link count (a 6-link is worth
+     matching for on its own), and never requires a life roll - a chest with *no*
+     life is the more min-maxed, more valuable result, so life is excluded from the
+     match rather than required.
+   - Everything else (helmets/gloves/boots/shields, jewellery) matches life, elemental
+     and chaos resistances, and local armour/evasion/energy shield mods - whichever of
+     those the item actually rolled.
+3. **Search** live listings requiring those mods, binary-searching for the largest set
+   of mods that still returns a decent sample (instead of scanning one-by-one, which
+   used to risk the trade site's rate limit on heavily-modded items). If no mod count
+   reaches a solid sample, it falls back to the best non-empty match it found rather
+   than giving up on mod-matching entirely.
 4. **Suggest** a price using the median of the matched listings (not a fixed "cheapest"
    pick, which is easily skewed by a single outlier), and shows the full low-high range
    alongside it.
@@ -25,7 +38,7 @@ Uniques search by exact name, currency/divination cards by name, gems by name + 
 
 ## Running it
 
-```
+```sh
 npm install
 npm start
 ```
@@ -34,7 +47,7 @@ Or, in VS Code: **Terminal → Run Task → Run App**.
 
 ## Building a standalone .exe
 
-```
+```sh
 npm run package
 ```
 

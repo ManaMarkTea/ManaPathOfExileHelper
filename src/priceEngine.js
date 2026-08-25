@@ -8,6 +8,17 @@ const REQUEST_SPACING_MS = 250;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// My own avg-damage * APS estimate consistently reads a bit low against the trade site's
+// own dps calc (verified against live listings), so shave the threshold down further to
+// stay a safe *minimum* rather than risk excluding the item's own tier of weapon.
+function estimateWeaponDpsMin(weapon) {
+  if (!weapon || !weapon.aps) return null;
+  const avg = (r) => (r ? (r[0] + r[1]) / 2 : 0);
+  const totalAvg = avg(weapon.phys) + avg(weapon.elem) + avg(weapon.chaos);
+  if (totalAvg <= 0) return null;
+  return Math.round(totalAvg * weapon.aps * 0.85);
+}
+
 function buildQuery(item, matchedStats) {
   const query = { status: { option: 'online' } };
 
@@ -32,7 +43,27 @@ function buildQuery(item, matchedStats) {
 
   // rare / magic / normal gear
   query.type = item.baseType;
-  query.filters = { type_filters: { filters: { rarity: { option: item.rarity.toLowerCase() } } } };
+  const typeFilters = { rarity: { option: item.rarity.toLowerCase() } };
+  query.filters = { type_filters: { filters: typeFilters } };
+
+  if (item.itemLevel) {
+    query.filters.misc_filters = { filters: { ilvl: { min: item.itemLevel } } };
+  }
+
+  if (item.slot === 'weapon') {
+    // Weapons are matched on DPS, not affixes - a specific mod combo rarely repeats,
+    // but comparable damage output is what actually drives a weapon's price.
+    const dpsMin = estimateWeaponDpsMin(item.weapon);
+    if (dpsMin) query.filters.weapon_filters = { filters: { dps: { min: dpsMin } } };
+    return query;
+  }
+
+  if (item.slot === 'chest' && item.links > 0) {
+    // Links matter enough on chests (a 6-link is a huge value jump) to always require,
+    // independent of how many affix filters we end up broadening away.
+    query.filters.socket_filters = { filters: { links: { min: item.links } } };
+  }
+
   if (matchedStats.length > 0) {
     query.stats = [{ type: 'and', filters: matchedStats.map((m) => ({ id: m.id, disabled: false })) }];
   }
@@ -43,8 +74,14 @@ function buildQuery(item, matchedStats) {
 // monotonic in k. That lets us binary-search for the largest workable k instead of
 // scanning every value from full-count down to 0, which cut the trade API's rate limit
 // close on heavily-modded items (e.g. 8 matched stats meant up to 7 sequential searches).
+//
+// Along the way we also remember the highest-k probe that returned *any* listings, even
+// if it fell short of MIN_RESULTS_TARGET. Without that, an item whose narrowest workable
+// search only turns up 2-4 comparable listings would fall all the way back to zero stat
+// filters (i.e. "any rare item of this base type") instead of using that smaller, still
+// far more relevant sample.
 async function searchWithBroadening(league, item, matchedStats) {
-  if (item.category !== 'gear' || matchedStats.length === 0) {
+  if (item.slot === 'weapon' || item.category !== 'gear' || matchedStats.length === 0) {
     const query = buildQuery(item, []);
     const result = await tradeApi.search(league, query);
     return { result, usedStatCount: 0 };
@@ -52,8 +89,11 @@ async function searchWithBroadening(league, item, matchedStats) {
 
   const capped = matchedStats.slice(0, MAX_STAT_FILTERS);
 
-  let bestK = 0;
-  let bestResult = await tradeApi.search(league, buildQuery(item, []));
+  const baseline = await tradeApi.search(league, buildQuery(item, []));
+  let bestGoodK = 0;
+  let bestGoodResult = baseline;
+  let bestAnyK = 0;
+  let bestAnyResult = baseline;
 
   let lo = 1;
   let hi = capped.length;
@@ -61,16 +101,23 @@ async function searchWithBroadening(league, item, matchedStats) {
     await sleep(REQUEST_SPACING_MS);
     const mid = Math.floor((lo + hi) / 2);
     const result = await tradeApi.search(league, buildQuery(item, capped.slice(0, mid)));
+
+    if (result.result.length > 0 && mid > bestAnyK) {
+      bestAnyK = mid;
+      bestAnyResult = result;
+    }
     if (result.result.length >= MIN_RESULTS_TARGET) {
-      bestK = mid;
-      bestResult = result;
+      bestGoodK = mid;
+      bestGoodResult = result;
       lo = mid + 1;
     } else {
       hi = mid - 1;
     }
   }
 
-  return { result: bestResult, usedStatCount: bestK };
+  if (bestGoodK > 0) return { result: bestGoodResult, usedStatCount: bestGoodK };
+  if (bestAnyK > 0) return { result: bestAnyResult, usedStatCount: bestAnyK };
+  return { result: baseline, usedStatCount: 0 };
 }
 
 function summarizeListings(listings) {
@@ -81,6 +128,17 @@ function summarizeListings(listings) {
       currency: l.listing.price.currency,
       account: l.listing.account && l.listing.account.name,
       itemName: l.item.name || l.item.typeLine,
+      ilvl: l.item.ilvl,
+      links: (l.item.sockets || []).length
+        ? Math.max(...Object.values((l.item.sockets || []).reduce((groups, s) => {
+            groups[s.group] = (groups[s.group] || 0) + 1;
+            return groups;
+          }, {})))
+        : 0,
+      mods: [...(l.item.implicitMods || []), ...(l.item.explicitMods || []), ...(l.item.craftedMods || []), ...(l.item.fracturedMods || [])].map(
+        (m) => (typeof m === 'string' ? m : m.description)
+      ),
+      dps: l.item.extended ? l.item.extended.dps : null,
     }));
 
   const icon = listings.find((l) => l.item && l.item.icon);
@@ -101,11 +159,17 @@ async function checkPrice(rawText, league, statMatcher) {
 
   let matchedStats = [];
   let unmatchedModCount = 0;
-  if (item.category === 'gear' && !item.unidentified) {
+  if (item.category === 'gear' && !item.unidentified && item.slot !== 'weapon') {
     for (const mod of item.mods) {
       const m = statMatcher && statMatcher.match(mod);
-      if (m) matchedStats.push(m);
+      if (m) matchedStats.push({ ...m, modText: mod });
       else unmatchedModCount++;
+    }
+    if (item.slot === 'chest') {
+      // A chest with no life roll is the more valuable, more "min-maxed" outcome (all
+      // budget went into the primary defence/damage stats instead), so life presence
+      // isn't something to match for here - only exclude it, never require it.
+      matchedStats = matchedStats.filter((m) => !/to maximum Life$/i.test(m.modText));
     }
   }
 
@@ -124,6 +188,8 @@ async function checkPrice(rawText, league, statMatcher) {
       unidentified: item.unidentified,
       itemLevel: item.itemLevel,
       mods: item.mods,
+      slot: item.slot,
+      links: item.links,
       icon,
       frameType,
     },
@@ -133,7 +199,7 @@ async function checkPrice(rawText, league, statMatcher) {
     statsMatched: usedStatCount,
     statsAvailable: matchedStats.length,
     unmatchedModCount,
-    approximate: item.category === 'gear' && (usedStatCount < matchedStats.length || matchedStats.length === 0),
+    approximate: item.category === 'gear' && item.slot !== 'weapon' && (usedStatCount < matchedStats.length || matchedStats.length === 0),
     suggestion,
     low,
     high,
