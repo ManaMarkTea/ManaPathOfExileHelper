@@ -8,7 +8,8 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "package": "electron-builder --win portable"
+    "package": "electron-builder --win portable",
+    "icon": "electron scripts/generate-icon.js"
   },
   "devDependencies": {
     "electron": "^31.0.0",
@@ -22,13 +23,15 @@
       "preload.js",
       "renderer/**/*",
       "src/**/*",
+      "build/icon.png",
       "package.json"
     ],
     "directories": {
       "output": "dist"
     },
     "win": {
-      "target": "portable"
+      "target": "portable",
+      "icon": "build/icon.png"
     }
   }
 }

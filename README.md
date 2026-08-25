@@ -58,6 +58,10 @@ A GitHub Actions workflow ([.github/workflows/build.yml](.github/workflows/build
 builds this automatically on every push to `main`, and attaches it to a GitHub Release
 whenever a `v*` tag is pushed.
 
+The app icon is [build/icon.svg](build/icon.svg) - edit it and run `npm run icon` to
+re-render `build/icon.png` (used for both the window icon and the packaged `.exe`).
+It renders the SVG through Electron's own Chromium, so no image tools are needed.
+
 ## License
 
 MIT - see [LICENSE](LICENSE).

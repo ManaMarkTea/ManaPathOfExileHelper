@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#242019"/>
+      <stop offset="100%" stop-color="#0a0908"/>
+    </radialGradient>
+    <linearGradient id="gem" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f6d878"/>
+      <stop offset="55%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#8a531c"/>
+    </linearGradient>
+    <linearGradient id="gemLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff3cf"/>
+      <stop offset="100%" stop-color="#f6d878"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="256" height="256" rx="52" fill="url(#bg)"/>
+  <rect x="6" y="6" width="244" height="244" rx="48" fill="none" stroke="#af6025" stroke-width="4" opacity="0.55"/>
+
+  <!-- faceted gem -->
+  <g>
+    <polygon points="128,46 176,92 152,92" fill="url(#gemLight)"/>
+    <polygon points="128,46 80,92 104,92" fill="url(#gem)"/>
+    <polygon points="80,92 104,92 128,210 62,120" fill="#9c6420"/>
+    <polygon points="176,92 152,92 128,210 194,120" fill="#c98a2c"/>
+    <polygon points="104,92 152,92 128,210" fill="url(#gemLight)"/>
+    <polygon points="80,92 62,120 104,92" fill="#7a4a17"/>
+    <polygon points="176,92 194,120 152,92" fill="#b87826"/>
+  </g>
+</svg>
