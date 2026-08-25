@@ -1,0 +1,13 @@
+{
+  "name": "poe-price-check",
+  "version": "1.0.0",
+  "description": "Paste a Path of Exile item, get a live sell price estimate from the official trade site.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}

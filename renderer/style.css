@@ -1,0 +1,229 @@
+* { box-sizing: border-box; }
+
+:root {
+  --rarity-normal: #c8c8c8;
+  --rarity-magic: #8888ff;
+  --rarity-rare: #ffff77;
+  --rarity-unique: #af6025;
+  --rarity-gem: #1ba29b;
+  --rarity-currency: #aa9e82;
+  --rarity-card: #cc8fdb;
+  --mod-text: #8888ff;
+  --gold: #d4af37;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #0c0c0f;
+  color: #d6d0c4;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 10px;
+  gap: 8px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+h1 {
+  font-family: 'Cinzel', 'Segoe UI', serif;
+  font-size: 15px;
+  margin: 0;
+  color: var(--gold);
+  letter-spacing: 0.03em;
+}
+
+select, textarea, button {
+  font-family: inherit;
+  font-size: 13px;
+  background: #1a1a20;
+  color: #d6d0c4;
+  border: 1px solid #3a3a45;
+  border-radius: 4px;
+}
+
+select {
+  padding: 4px 6px;
+}
+
+textarea {
+  flex: 0 0 130px;
+  padding: 8px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+textarea:focus {
+  outline: 1px solid var(--gold);
+}
+
+button#checkBtn {
+  padding: 8px;
+  cursor: pointer;
+  background: linear-gradient(#af6025, #7a4118);
+  color: #f5e6c8;
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: 1px solid #d4af37;
+}
+
+button#checkBtn:hover { filter: brightness(1.15); }
+button#checkBtn:disabled { background: #3a3a40; color: #888; border-color: #555; cursor: default; filter: none; }
+
+#status {
+  font-size: 12px;
+  color: #999;
+  min-height: 14px;
+}
+
+#status.error { color: #e05d5d; }
+
+.hidden { display: none !important; }
+
+#result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* --- item tooltip card, styled after the in-game item box --- */
+.item-card {
+  background: radial-gradient(ellipse at top, #1a1712 0%, #0a0908 100%);
+  border: 1px solid var(--rarity, #666);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.6), inset 0 0 12px rgba(0,0,0,0.5);
+  border-radius: 3px;
+  padding: 10px;
+}
+
+.item-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.item-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 3px rgba(0,0,0,0.8));
+  flex-shrink: 0;
+}
+
+.item-card-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.item-name {
+  font-family: 'Cinzel', 'Segoe UI', serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--rarity, #c8c8c8);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-base {
+  font-size: 11px;
+  color: var(--rarity, #c8c8c8);
+  opacity: 0.85;
+}
+
+.item-mods {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0 2px;
+  text-align: center;
+}
+
+.item-mods .mod-line {
+  color: var(--mod-text);
+  font-size: 12px;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.6);
+}
+
+.item-flags {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  font-size: 11px;
+  padding-top: 4px;
+}
+
+.item-flags .flag-corrupted { color: #d63c3c; }
+.item-flags .flag-unidentified { color: #ffff77; }
+
+.suggestion {
+  background: #1a1712;
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+}
+
+.suggestion-label {
+  font-size: 10px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.suggestion-value {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+  margin: 2px 0;
+}
+
+.suggestion-sub { font-size: 11px; color: #999; }
+
+#listings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.listing-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 4px 6px;
+  background: #16161b;
+  border: 1px solid #26262e;
+  border-radius: 4px;
+}
+
+.listing-row .price { color: var(--gold); font-weight: 600; }
+
+button.link-btn {
+  background: none;
+  border: none;
+  color: #8ab4f8;
+  cursor: pointer;
+  text-align: left;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+button.link-btn:hover { text-decoration: underline; }
+
+#noResults { font-size: 12px; color: #999; text-align: center; padding: 12px; }

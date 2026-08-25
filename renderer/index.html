@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>PoE Price Check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>PoE Price Check</h1>
+      <select id="league"></select>
+    </header>
+
+    <textarea id="itemInput" placeholder="Click here, then Ctrl+C an item in-game and Ctrl+V it here..." autofocus></textarea>
+
+    <button id="checkBtn">Check Price</button>
+
+    <div id="status"></div>
+
+    <div id="result" class="hidden">
+      <div id="itemCard" class="item-card">
+        <div class="item-card-header">
+          <img id="itemIcon" class="item-icon hidden" alt="" />
+          <div class="item-card-titles">
+            <div id="itemName" class="item-name"></div>
+            <div id="itemBase" class="item-base"></div>
+          </div>
+        </div>
+        <div id="itemMods" class="item-mods"></div>
+        <div id="itemFlags" class="item-flags"></div>
+      </div>
+
+      <div id="suggestionBox" class="suggestion hidden">
+        <div class="suggestion-label">Suggested price</div>
+        <div class="suggestion-value" id="suggestionValue"></div>
+        <div class="suggestion-sub" id="suggestionSub"></div>
+      </div>
+
+      <div id="noResults" class="hidden">No live listings found for this item.</div>
+
+      <div id="listings"></div>
+
+      <button id="openTrade" class="link-btn">Open full results on pathofexile.com/trade &rarr;</button>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
