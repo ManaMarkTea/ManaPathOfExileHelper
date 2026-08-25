@@ -20,7 +20,11 @@ function estimateWeaponDpsMin(weapon) {
 }
 
 function buildQuery(item, matchedStats) {
-  const query = { status: { option: 'online' } };
+  // "securable" = the trade site's "Instant Buyout" status: a firm price the site can
+  // reserve for you automatically, as opposed to "online"/"any" listings that need
+  // whispering the seller and hoping they're around to actually complete an in-person
+  // trade. Pricing off buyout-only listings gives a number you could actually pay today.
+  const query = { status: { option: 'securable' } };
 
   if (item.category === 'currency') {
     query.type = item.baseType;
