@@ -4,6 +4,7 @@
   "description": "Paste a Path of Exile item, get a live sell price estimate from the official trade site.",
   "main": "main.js",
   "author": "ManaMarkTea",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "start": "electron .",
