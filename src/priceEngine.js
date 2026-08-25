@@ -24,7 +24,14 @@ function buildQuery(item, matchedStats) {
   // reserve for you automatically, as opposed to "online"/"any" listings that need
   // whispering the seller and hoping they're around to actually complete an in-person
   // trade. Pricing off buyout-only listings gives a number you could actually pay today.
-  const query = { status: { option: 'securable' } };
+  //
+  // "chaos_divine" restricts results to listings priced in Chaos or Divine Orbs - any
+  // other currency isn't worth pricing in anyway, and mixing in obscure currencies just
+  // adds noise to the suggested range.
+  const query = {
+    status: { option: 'securable' },
+    filters: { trade_filters: { filters: { price: { option: 'chaos_divine' } } } },
+  };
 
   if (item.category === 'currency') {
     query.type = item.baseType;
@@ -34,7 +41,7 @@ function buildQuery(item, matchedStats) {
   if (item.category === 'gem') {
     query.type = item.name;
     if (item.gemLevel) {
-      query.filters = { misc_filters: { filters: { gem_level: { min: item.gemLevel } } } };
+      query.filters.misc_filters = { filters: { gem_level: { min: item.gemLevel } } };
     }
     return query;
   }
@@ -47,8 +54,7 @@ function buildQuery(item, matchedStats) {
 
   // rare / magic / normal gear
   query.type = item.baseType;
-  const typeFilters = { rarity: { option: item.rarity.toLowerCase() } };
-  query.filters = { type_filters: { filters: typeFilters } };
+  query.filters.type_filters = { filters: { rarity: { option: item.rarity.toLowerCase() } } };
 
   if (item.itemLevel) {
     query.filters.misc_filters = { filters: { ilvl: { min: item.itemLevel } } };
