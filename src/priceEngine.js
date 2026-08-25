@@ -4,6 +4,9 @@ const tradeApi = require('./tradeApi');
 const MAX_STAT_FILTERS = 6;
 const FETCH_COUNT = 10;
 const MIN_RESULTS_TARGET = 5;
+const REQUEST_SPACING_MS = 250;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function buildQuery(item, matchedStats) {
   const query = { status: { option: 'online' } };
@@ -36,6 +39,10 @@ function buildQuery(item, matchedStats) {
   return query;
 }
 
+// More matched stats -> fewer or equal results, so "does k stats give enough results" is
+// monotonic in k. That lets us binary-search for the largest workable k instead of
+// scanning every value from full-count down to 0, which cut the trade API's rate limit
+// close on heavily-modded items (e.g. 8 matched stats meant up to 7 sequential searches).
 async function searchWithBroadening(league, item, matchedStats) {
   if (item.category !== 'gear' || matchedStats.length === 0) {
     const query = buildQuery(item, []);
@@ -44,16 +51,26 @@ async function searchWithBroadening(league, item, matchedStats) {
   }
 
   const capped = matchedStats.slice(0, MAX_STAT_FILTERS);
-  for (let k = capped.length; k >= 0; k--) {
-    const query = buildQuery(item, capped.slice(0, k));
-    const result = await tradeApi.search(league, query);
-    if (result.result.length >= MIN_RESULTS_TARGET || k === 0) {
-      return { result, usedStatCount: k };
+
+  let bestK = 0;
+  let bestResult = await tradeApi.search(league, buildQuery(item, []));
+
+  let lo = 1;
+  let hi = capped.length;
+  while (lo <= hi) {
+    await sleep(REQUEST_SPACING_MS);
+    const mid = Math.floor((lo + hi) / 2);
+    const result = await tradeApi.search(league, buildQuery(item, capped.slice(0, mid)));
+    if (result.result.length >= MIN_RESULTS_TARGET) {
+      bestK = mid;
+      bestResult = result;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
     }
   }
-  // unreachable, but keep a fallback
-  const query = buildQuery(item, []);
-  return { result: await tradeApi.search(league, query), usedStatCount: 0 };
+
+  return { result: bestResult, usedStatCount: bestK };
 }
 
 function summarizeListings(listings) {

@@ -7,6 +7,7 @@ const { checkPrice } = require('./src/priceEngine');
 
 let mainWindow;
 const statMatcher = new StatMatcher();
+let statMatcherReady = Promise.resolve();
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -27,7 +28,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
-  statMatcher.init().catch(() => {});
+  statMatcherReady = statMatcher.init().catch(() => {});
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -45,6 +46,9 @@ ipcMain.handle('get-leagues', async () => {
 });
 
 ipcMain.handle('check-price', async (event, { itemText, league }) => {
+  // The first check right after launch can otherwise race the ~2MB stat-data fetch and
+  // silently fall back to a broad, unmatched search instead of waiting the extra moment.
+  await statMatcherReady;
   return checkPrice(itemText, league, statMatcher);
 });
 

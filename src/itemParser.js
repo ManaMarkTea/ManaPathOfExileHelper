@@ -96,7 +96,9 @@ function parseItem(rawText) {
     // not "a mod section with one weird line in it". Everything else in a mod section
     // is kept, even lines that don't match MOD_LIKE (e.g. "Culling Strike"), so one
     // unusual mod format doesn't silently drop the rest of the item's real mods.
-    const candidateLines = lines.filter((l) => !NON_MOD_LINE.test(l));
+    // Parenthetical reminder text, e.g. "(Elemental Ailments are Ignited, Scorched, ...)",
+    // is never a mod line on its own - it's a rules explanation tacked onto the mod above it.
+    const candidateLines = lines.filter((l) => !NON_MOD_LINE.test(l) && !/^\(.*\)$/.test(l));
     const looksLikeFlavour = item.rarity.toLowerCase() === 'unique' && !candidateLines.some((l) => MOD_LIKE.test(l));
     if (candidateLines.length > 0 && !looksLikeFlavour) {
       for (const l of candidateLines) item.mods.push(stripRollRange(l));
