@@ -79,7 +79,7 @@ function parseItem(rawText) {
 
     // Skip lines/sections we already handled or that are pure metadata, not mods.
     if (/^Requirements:/.test(lines[0])) continue;
-    if (/^Sockets:/.test(lines[0]) || /^Quality:|^Armour:|^Evasion|^Energy Shield|^Ward:|^Block chance|^Stack Size:|^Level:.*\(Max\)?$/.test(lines[0])) continue;
+    if (/^Sockets:/.test(lines[0]) || /^Quality:|^Armour:|^Evasion|^Energy Shield|^Ward:|^Block chance|^Stack Size:|^Item Level:|^Level:.*\(Max\)?$/.test(lines[0])) continue;
     if (lines.length === 1 && NON_MOD_LINE.test(lines[0])) continue;
 
     // Gem level: property block that has both "Level:" and no character-requirement tags.
@@ -91,9 +91,15 @@ function parseItem(rawText) {
       }
     }
 
-    const modLines = lines.filter((l) => !NON_MOD_LINE.test(l) && MOD_LIKE.test(l));
-    if (modLines.length > 0 && modLines.length === lines.filter((l) => !NON_MOD_LINE.test(l)).length) {
-      for (const l of modLines) item.mods.push(stripRollRange(l));
+    // Only uniques carry prose flavour text, and it's always its own section with no
+    // mod-shaped line in it at all - so a section with zero MOD_LIKE lines is flavour,
+    // not "a mod section with one weird line in it". Everything else in a mod section
+    // is kept, even lines that don't match MOD_LIKE (e.g. "Culling Strike"), so one
+    // unusual mod format doesn't silently drop the rest of the item's real mods.
+    const candidateLines = lines.filter((l) => !NON_MOD_LINE.test(l));
+    const looksLikeFlavour = item.rarity.toLowerCase() === 'unique' && !candidateLines.some((l) => MOD_LIKE.test(l));
+    if (candidateLines.length > 0 && !looksLikeFlavour) {
+      for (const l of candidateLines) item.mods.push(stripRollRange(l));
     }
   }
 

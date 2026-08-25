@@ -3,7 +3,7 @@ const tradeApi = require('./tradeApi');
 
 const MAX_STAT_FILTERS = 6;
 const FETCH_COUNT = 10;
-const MIN_RESULTS_TARGET = 3;
+const MIN_RESULTS_TARGET = 5;
 
 function buildQuery(item, matchedStats) {
   const query = { status: { option: 'online' } };
@@ -68,11 +68,15 @@ function summarizeListings(listings) {
 
   const icon = listings.find((l) => l.item && l.item.icon);
   const frameType = icon ? icon.item.frameType : null;
+  const base = { priced, icon: icon ? icon.item.icon : null, frameType };
 
-  if (priced.length === 0) return { priced, suggestion: null, icon: icon ? icon.item.icon : null, frameType };
+  if (priced.length === 0) return { ...base, suggestion: null, low: null, high: null };
 
-  const suggestionIndex = Math.min(2, priced.length - 1);
-  return { priced, suggestion: priced[suggestionIndex], icon: icon.item.icon, frameType };
+  // `priced` is already true-value sorted (server-side price:asc), so the positional
+  // median is a real median, not an approximation - and it's far less sensitive to a
+  // single oddly-priced listing than always picking a fixed rank like "3rd cheapest".
+  const medianIndex = Math.floor((priced.length - 1) / 2);
+  return { ...base, suggestion: priced[medianIndex], low: priced[0], high: priced[priced.length - 1] };
 }
 
 async function checkPrice(rawText, league, statMatcher) {
@@ -91,7 +95,7 @@ async function checkPrice(rawText, league, statMatcher) {
   const { result, usedStatCount } = await searchWithBroadening(league, item, matchedStats);
   const ids = result.result.slice(0, FETCH_COUNT);
   const listings = await tradeApi.fetchListings(ids, result.id);
-  const { priced, suggestion, icon, frameType } = summarizeListings(listings);
+  const { priced, suggestion, low, high, icon, frameType } = summarizeListings(listings);
 
   return {
     item: {
@@ -114,6 +118,8 @@ async function checkPrice(rawText, league, statMatcher) {
     unmatchedModCount,
     approximate: item.category === 'gear' && (usedStatCount < matchedStats.length || matchedStats.length === 0),
     suggestion,
+    low,
+    high,
     listings: priced,
     tradeUrl: `https://www.pathofexile.com/trade/search/${encodeURIComponent(league)}/${result.id}`,
   };

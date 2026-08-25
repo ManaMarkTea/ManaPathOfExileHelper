@@ -194,6 +194,7 @@ button#checkBtn:disabled { background: #3a3a40; color: #888; border-color: #555;
   margin: 2px 0;
 }
 
+.suggestion-range { font-size: 11px; color: #b0aa9c; margin-bottom: 2px; }
 .suggestion-sub { font-size: 11px; color: #999; }
 
 #listings {

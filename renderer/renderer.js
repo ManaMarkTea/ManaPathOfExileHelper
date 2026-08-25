@@ -60,6 +60,7 @@ const el = {
   itemFlags: document.getElementById('itemFlags'),
   suggestionBox: document.getElementById('suggestionBox'),
   suggestionValue: document.getElementById('suggestionValue'),
+  suggestionRange: document.getElementById('suggestionRange'),
   suggestionSub: document.getElementById('suggestionSub'),
   noResults: document.getElementById('noResults'),
   listings: document.getElementById('listings'),
@@ -131,6 +132,15 @@ function renderResult(res) {
     el.suggestionBox.classList.remove('hidden');
     el.noResults.classList.add('hidden');
     el.suggestionValue.textContent = formatPrice(res.suggestion);
+
+    const sameAsMedian = (a, b) => a && b && a.amount === b.amount && a.currency === b.currency;
+    if (res.low && res.high && !(sameAsMedian(res.low, res.suggestion) && sameAsMedian(res.high, res.suggestion))) {
+      el.suggestionRange.textContent = `range seen: ${formatPrice(res.low)} – ${formatPrice(res.high)}`;
+      el.suggestionRange.classList.remove('hidden');
+    } else {
+      el.suggestionRange.classList.add('hidden');
+    }
+
     const parts = [`based on ${res.fetched} of ${res.total} live listing${res.total === 1 ? '' : 's'}`];
     if (res.approximate) {
       parts.push(
