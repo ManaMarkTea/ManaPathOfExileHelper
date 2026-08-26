@@ -98,7 +98,7 @@ function parseItem(rawText) {
 
     // Skip lines/sections we already handled or that are pure metadata, not mods.
     if (/^Requirements:/.test(lines[0])) continue;
-    if (/^Sockets:/.test(lines[0]) || /^Quality:|^Armour:|^Evasion|^Energy Shield|^Ward:|^Block chance|^Stack Size:|^Item Level:|^Level:.*\(Max\)?$/.test(lines[0])) continue;
+    if (/^Sockets:/.test(lines[0]) || /^Quality:|^Armour:|^Evasion|^Energy Shield|^Ward:|^Block chance|^Stack Size:|^Item Level:|^Note:|^Level:.*\(Max\)?$/.test(lines[0])) continue;
     if (lines.length === 1 && NON_MOD_LINE.test(lines[0])) continue;
 
     // Gem level: property block that has both "Level:" and no character-requirement tags.

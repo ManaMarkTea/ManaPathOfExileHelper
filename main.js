@@ -3,11 +3,13 @@ const path = require('path');
 
 const tradeApi = require('./src/tradeApi');
 const { StatMatcher } = require('./src/statMatcher');
+const { BaseTypeResolver } = require('./src/baseTypeResolver');
 const { checkPrice } = require('./src/priceEngine');
 
 let mainWindow;
 const statMatcher = new StatMatcher();
-let statMatcherReady = Promise.resolve();
+const baseTypeResolver = new BaseTypeResolver();
+let dataReady = Promise.resolve();
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -29,7 +31,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
-  statMatcherReady = statMatcher.init().catch(() => {});
+  dataReady = Promise.all([statMatcher.init().catch(() => {}), baseTypeResolver.init().catch(() => {})]);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -47,10 +49,10 @@ ipcMain.handle('get-leagues', async () => {
 });
 
 ipcMain.handle('check-price', async (event, { itemText, league }) => {
-  // The first check right after launch can otherwise race the ~2MB stat-data fetch and
+  // The first check right after launch can otherwise race the stat/item data fetches and
   // silently fall back to a broad, unmatched search instead of waiting the extra moment.
-  await statMatcherReady;
-  return checkPrice(itemText, league, statMatcher);
+  await dataReady;
+  return checkPrice(itemText, league, statMatcher, baseTypeResolver);
 });
 
 ipcMain.handle('open-external', async (event, url) => {

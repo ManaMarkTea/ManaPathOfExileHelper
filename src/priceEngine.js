@@ -164,8 +164,15 @@ function summarizeListings(listings) {
   return { ...base, suggestion: priced[medianIndex], low: priced[0], high: priced[priced.length - 1] };
 }
 
-async function checkPrice(rawText, league, statMatcher) {
+async function checkPrice(rawText, league, statMatcher, baseTypeResolver) {
   const item = parseItem(rawText);
+
+  // Magic items show as a single combined line - "Rotund Crusader Plate of the Seal" -
+  // so the parser can't split name from base type itself; only "Crusader Plate" here is
+  // a real, searchable base type, and querying the raw combined string 400s as unknown.
+  if (item.rarity.toLowerCase() === 'magic' && item.baseType === item.name && baseTypeResolver) {
+    item.baseType = baseTypeResolver.resolve(item.baseType);
+  }
 
   let matchedStats = [];
   let unmatchedModCount = 0;
