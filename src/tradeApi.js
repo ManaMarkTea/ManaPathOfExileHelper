@@ -27,9 +27,12 @@ async function fetchWithRateLimitRetry(url, options, onProgress) {
   if (res.status !== 429) return res;
 
   const retryAfter = parseFloat(res.headers.get('retry-after'));
-  const wait = Number.isFinite(retryAfter) ? retryAfter : 3;
-  if (onProgress) onProgress(`Rate limited by trade site - waiting ${wait}s...`);
-  await sleep(wait * 1000);
+  let remaining = Math.ceil(Number.isFinite(retryAfter) ? retryAfter : 3);
+  while (remaining > 0) {
+    if (onProgress) onProgress(`Rate limited by trade site - waiting ${remaining}s...`);
+    await sleep(1000);
+    remaining--;
+  }
   return fetch(url, options);
 }
 
