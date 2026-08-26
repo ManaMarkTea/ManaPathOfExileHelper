@@ -27,6 +27,19 @@ body {
   gap: 8px;
 }
 
+.version-bar {
+  margin: -10px -10px 0 -10px;
+  padding: 3px 10px;
+  background: #17171c;
+  border-bottom: 1px solid #2a2a33;
+  color: #6f6a5e;
+  font-size: 10px;
+  font-family: 'Consolas', 'Segoe UI', monospace;
+  text-align: right;
+  letter-spacing: 0.02em;
+  user-select: text;
+}
+
 header {
   display: flex;
   align-items: center;

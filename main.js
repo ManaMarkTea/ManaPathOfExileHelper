@@ -46,6 +46,8 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+ipcMain.handle('get-version', () => app.getVersion());
+
 ipcMain.handle('get-leagues', async () => {
   const leagues = await tradeApi.getLeagues();
   const current = tradeApi.pickCurrentLeague(leagues);

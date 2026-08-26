@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  getVersion: () => ipcRenderer.invoke('get-version'),
   getLeagues: () => ipcRenderer.invoke('get-leagues'),
   checkPrice: (itemText, league) => ipcRenderer.invoke('check-price', { itemText, league }),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),

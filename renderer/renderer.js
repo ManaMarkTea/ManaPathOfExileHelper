@@ -47,6 +47,7 @@ function rarityColor(rarity) {
 }
 
 const el = {
+  versionBar: document.getElementById('versionBar'),
   league: document.getElementById('league'),
   input: document.getElementById('itemInput'),
   checkBtn: document.getElementById('checkBtn'),
@@ -72,6 +73,14 @@ let lastTradeUrl = null;
 function setStatus(msg, isError) {
   el.status.textContent = msg || '';
   el.status.classList.toggle('error', !!isError);
+}
+
+async function loadVersion() {
+  try {
+    el.versionBar.textContent = `v${await window.api.getVersion()}`;
+  } catch (err) {
+    el.versionBar.textContent = '';
+  }
 }
 
 async function loadLeagues() {
@@ -243,4 +252,5 @@ el.openTrade.addEventListener('click', () => {
   if (lastTradeUrl) window.api.openExternal(lastTradeUrl);
 });
 
+loadVersion();
 loadLeagues();
