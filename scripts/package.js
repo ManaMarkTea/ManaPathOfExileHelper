@@ -1,5 +1,5 @@
 // Wraps electron-builder to stamp each build with the date + short git commit hash it
-// came from, e.g. "1.0.0+20260826.93ee4ac". package.json's own version stays a plain,
+// came from, e.g. "1.0.0_20260826.93ee4ac". package.json's own version stays a plain,
 // human-bumped release number - this only affects what gets embedded in the built exe
 // (via extraMetadata) so every artifact is traceable back to its exact source commit
 // without anyone having to remember to bump anything on every push.
@@ -19,7 +19,7 @@ function shortHash() {
 }
 
 const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-const buildVersion = `${pkg.version}+${date}.${shortHash()}`;
+const buildVersion = `${pkg.version}_${date}.${shortHash()}`;
 
 console.log(`Packaging as ${buildVersion}`);
 
