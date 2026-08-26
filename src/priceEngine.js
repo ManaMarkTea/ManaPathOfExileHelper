@@ -135,26 +135,38 @@ async function searchWithBroadening(league, item, matchedStats, onProgress) {
   return { result: baseline, usedStatCount: 0 };
 }
 
+// Trade API sockets come as a flat list of {group, sColour} - group them into the same
+// "array of linked-groups, each an array of colors" shape the parser produces for the
+// pasted item, so both can be rendered with the same socket-visualization code.
+function groupSockets(rawSockets) {
+  if (!rawSockets || rawSockets.length === 0) return [];
+  const byGroup = new Map();
+  for (const s of rawSockets) {
+    if (!byGroup.has(s.group)) byGroup.set(s.group, []);
+    byGroup.get(s.group).push(s.sColour);
+  }
+  return [...byGroup.values()];
+}
+
 function summarizeListings(listings) {
   const priced = listings
     .filter((l) => l.listing && l.listing.price && l.listing.price.amount > 0)
-    .map((l) => ({
-      amount: l.listing.price.amount,
-      currency: l.listing.price.currency,
-      account: l.listing.account && l.listing.account.name,
-      itemName: l.item.name || l.item.typeLine,
-      ilvl: l.item.ilvl,
-      links: (l.item.sockets || []).length
-        ? Math.max(...Object.values((l.item.sockets || []).reduce((groups, s) => {
-            groups[s.group] = (groups[s.group] || 0) + 1;
-            return groups;
-          }, {})))
-        : 0,
-      mods: [...(l.item.implicitMods || []), ...(l.item.explicitMods || []), ...(l.item.craftedMods || []), ...(l.item.fracturedMods || [])].map(
-        (m) => (typeof m === 'string' ? m : m.description)
-      ),
-      dps: l.item.extended ? l.item.extended.dps : null,
-    }));
+    .map((l) => {
+      const sockets = groupSockets(l.item.sockets);
+      return {
+        amount: l.listing.price.amount,
+        currency: l.listing.price.currency,
+        account: l.listing.account && l.listing.account.name,
+        itemName: l.item.name || l.item.typeLine,
+        ilvl: l.item.ilvl,
+        sockets,
+        links: sockets.length ? Math.max(...sockets.map((g) => g.length)) : 0,
+        mods: [...(l.item.implicitMods || []), ...(l.item.explicitMods || []), ...(l.item.craftedMods || []), ...(l.item.fracturedMods || [])].map(
+          (m) => (typeof m === 'string' ? m : m.description)
+        ),
+        dps: l.item.extended ? l.item.extended.dps : null,
+      };
+    });
 
   const icon = listings.find((l) => l.item && l.item.icon);
   const frameType = icon ? icon.item.frameType : null;
@@ -215,6 +227,7 @@ async function checkPrice(rawText, league, statMatcher, baseTypeResolver, onProg
       mods: item.mods,
       slot: item.slot,
       links: item.links,
+      sockets: item.sockets,
       icon,
       frameType,
     },

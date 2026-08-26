@@ -64,6 +64,7 @@ function parseItem(rawText) {
     quality: null,
     gemLevel: null,
     links: 0,
+    sockets: [],
     mods: [],
     weapon: null,
     slot: classifySlot(itemClass),
@@ -92,8 +93,9 @@ function parseItem(rawText) {
 
     const socketsLine = lines.find((l) => /^Sockets:/.test(l));
     if (socketsLine) {
-      const groups = socketsLine.replace('Sockets:', '').trim().split(/\s+/);
-      item.links = Math.max(0, ...groups.map((g) => g.split('-').length));
+      const groups = socketsLine.replace('Sockets:', '').trim().split(/\s+/).filter(Boolean);
+      item.sockets = groups.map((g) => g.split('-'));
+      item.links = Math.max(0, ...item.sockets.map((g) => g.length));
     }
 
     // Skip lines/sections we already handled or that are pure metadata, not mods.

@@ -46,6 +46,31 @@ function rarityColor(rarity) {
   return RARITY_COLORS[(rarity || '').toLowerCase()] || RARITY_COLORS.normal;
 }
 
+// Builds a small colored-circle-and-link visualization of an item's sockets, e.g.
+// [["R","R","W"],["G"]] -> two red dots linked to a white dot, a gap, then a green dot.
+function buildSocketsElement(groups) {
+  const wrap = document.createElement('div');
+  wrap.className = 'sockets';
+  (groups || []).forEach((group, gi) => {
+    if (gi > 0) {
+      const gap = document.createElement('span');
+      gap.className = 'socket-gap';
+      wrap.appendChild(gap);
+    }
+    group.forEach((color, i) => {
+      if (i > 0) {
+        const link = document.createElement('span');
+        link.className = 'socket-link';
+        wrap.appendChild(link);
+      }
+      const dot = document.createElement('span');
+      dot.className = `socket socket-${/^[RGBW]$/.test(color) ? color : 'W'}`;
+      wrap.appendChild(dot);
+    });
+  });
+  return wrap;
+}
+
 const el = {
   versionBar: document.getElementById('versionBar'),
   league: document.getElementById('league'),
@@ -57,6 +82,7 @@ const el = {
   itemIcon: document.getElementById('itemIcon'),
   itemName: document.getElementById('itemName'),
   itemBase: document.getElementById('itemBase'),
+  itemSockets: document.getElementById('itemSockets'),
   itemMods: document.getElementById('itemMods'),
   itemFlags: document.getElementById('itemFlags'),
   suggestionBox: document.getElementById('suggestionBox'),
@@ -113,6 +139,14 @@ function renderResult(res) {
     el.itemIcon.classList.remove('hidden');
   } else {
     el.itemIcon.classList.add('hidden');
+  }
+
+  el.itemSockets.innerHTML = '';
+  if (res.item.sockets && res.item.sockets.length) {
+    el.itemSockets.appendChild(buildSocketsElement(res.item.sockets));
+    el.itemSockets.classList.remove('hidden');
+  } else {
+    el.itemSockets.classList.add('hidden');
   }
 
   el.itemMods.innerHTML = '';
@@ -187,12 +221,18 @@ function renderResult(res) {
 
     const metaBits = [];
     if (l.ilvl) metaBits.push(`ilvl ${l.ilvl}`);
-    if (l.links >= 4) metaBits.push(`${l.links}-link`);
     if (l.dps) metaBits.push(`${l.dps} dps`);
-    if (metaBits.length) {
+    if (metaBits.length || (l.sockets && l.sockets.length)) {
       const meta = document.createElement('div');
       meta.className = 'listing-meta';
-      meta.textContent = metaBits.join(' · ');
+      if (metaBits.length) {
+        const text = document.createElement('span');
+        text.textContent = metaBits.join(' · ');
+        meta.appendChild(text);
+      }
+      if (l.sockets && l.sockets.length) {
+        meta.appendChild(buildSocketsElement(l.sockets));
+      }
       card.appendChild(meta);
     }
 
