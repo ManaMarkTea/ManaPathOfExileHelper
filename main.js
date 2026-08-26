@@ -10,6 +10,7 @@ let mainWindow;
 const statMatcher = new StatMatcher();
 const baseTypeResolver = new BaseTypeResolver();
 let dataReady = Promise.resolve();
+let dataReadyDone = true;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -31,7 +32,10 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
-  dataReady = Promise.all([statMatcher.init().catch(() => {}), baseTypeResolver.init().catch(() => {})]);
+  dataReadyDone = false;
+  dataReady = Promise.all([statMatcher.init().catch(() => {}), baseTypeResolver.init().catch(() => {})]).finally(() => {
+    dataReadyDone = true;
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -49,10 +53,16 @@ ipcMain.handle('get-leagues', async () => {
 });
 
 ipcMain.handle('check-price', async (event, { itemText, league }) => {
+  const onProgress = (message) => {
+    if (!event.sender.isDestroyed()) event.sender.send('check-price-progress', message);
+  };
+
   // The first check right after launch can otherwise race the stat/item data fetches and
   // silently fall back to a broad, unmatched search instead of waiting the extra moment.
+  if (!dataReadyDone) onProgress('Loading trade data (first run)...');
   await dataReady;
-  return checkPrice(itemText, league, statMatcher, baseTypeResolver);
+
+  return checkPrice(itemText, league, statMatcher, baseTypeResolver, onProgress);
 });
 
 ipcMain.handle('open-external', async (event, url) => {

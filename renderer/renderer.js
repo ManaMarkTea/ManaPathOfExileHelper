@@ -214,7 +214,9 @@ async function checkPrice() {
   }
   el.checkBtn.disabled = true;
   el.result.classList.add('hidden');
-  setStatus('Checking trade site...');
+  setStatus('Starting...');
+
+  const stopProgress = window.api.onProgress((message) => setStatus(message));
   try {
     const res = await window.api.checkPrice(text, el.league.value);
     setStatus('');
@@ -222,6 +224,7 @@ async function checkPrice() {
   } catch (err) {
     setStatus(err.message || 'Something went wrong.', true);
   } finally {
+    stopProgress();
     el.checkBtn.disabled = false;
   }
 }

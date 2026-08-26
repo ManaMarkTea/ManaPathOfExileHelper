@@ -22,21 +22,27 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // The trade API's rate limit resets fast (a handful of seconds), so one honest wait-and-
 // retry - using the Retry-After header when present - clears a transient 429 instead of
 // just failing a whole price check that made several requests (broadening, then fetch).
-async function fetchWithRateLimitRetry(url, options) {
+async function fetchWithRateLimitRetry(url, options, onProgress) {
   const res = await fetch(url, options);
   if (res.status !== 429) return res;
 
   const retryAfter = parseFloat(res.headers.get('retry-after'));
-  await sleep((Number.isFinite(retryAfter) ? retryAfter : 3) * 1000);
+  const wait = Number.isFinite(retryAfter) ? retryAfter : 3;
+  if (onProgress) onProgress(`Rate limited by trade site - waiting ${wait}s...`);
+  await sleep(wait * 1000);
   return fetch(url, options);
 }
 
-async function search(league, query) {
-  const res = await fetchWithRateLimitRetry(`${BASE}/search/${encodeURIComponent(league)}`, {
-    method: 'POST',
-    headers: { 'User-Agent': UA, 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ query, sort: { price: 'asc' } }),
-  });
+async function search(league, query, onProgress) {
+  const res = await fetchWithRateLimitRetry(
+    `${BASE}/search/${encodeURIComponent(league)}`,
+    {
+      method: 'POST',
+      headers: { 'User-Agent': UA, 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query, sort: { price: 'asc' } }),
+    },
+    onProgress
+  );
   if (res.status === 429) throw new Error('Trade site rate limit hit - wait a few seconds and try again.');
   if (!res.ok) {
     const body = await res.text().catch(() => '');
@@ -45,11 +51,13 @@ async function search(league, query) {
   return res.json(); // { id, complexity, result: [itemId, ...], total }
 }
 
-async function fetchListings(ids, queryId) {
+async function fetchListings(ids, queryId, onProgress) {
   if (ids.length === 0) return [];
-  const res = await fetchWithRateLimitRetry(`${BASE}/fetch/${ids.join(',')}?query=${queryId}`, {
-    headers: { 'User-Agent': UA, Accept: 'application/json' },
-  });
+  const res = await fetchWithRateLimitRetry(
+    `${BASE}/fetch/${ids.join(',')}?query=${queryId}`,
+    { headers: { 'User-Agent': UA, Accept: 'application/json' } },
+    onProgress
+  );
   if (res.status === 429) throw new Error('Trade site rate limit hit - wait a few seconds and try again.');
   if (!res.ok) throw new Error(`Trade fetch failed (HTTP ${res.status})`);
   const data = await res.json();

@@ -90,16 +90,20 @@ function buildQuery(item, matchedStats) {
 // search only turns up 2-4 comparable listings would fall all the way back to zero stat
 // filters (i.e. "any rare item of this base type") instead of using that smaller, still
 // far more relevant sample.
-async function searchWithBroadening(league, item, matchedStats) {
+async function searchWithBroadening(league, item, matchedStats, onProgress) {
+  const report = onProgress || (() => {});
+
   if (item.slot === 'weapon' || item.category !== 'gear' || matchedStats.length === 0) {
+    report('Searching listings...');
     const query = buildQuery(item, []);
-    const result = await tradeApi.search(league, query);
+    const result = await tradeApi.search(league, query, onProgress);
     return { result, usedStatCount: 0 };
   }
 
   const capped = matchedStats.slice(0, MAX_STAT_FILTERS);
 
-  const baseline = await tradeApi.search(league, buildQuery(item, []));
+  report(`Searching (${capped.length} mod${capped.length === 1 ? '' : 's'} matched)...`);
+  const baseline = await tradeApi.search(league, buildQuery(item, []), onProgress);
   let bestGoodK = 0;
   let bestGoodResult = baseline;
   let bestAnyK = 0;
@@ -110,7 +114,8 @@ async function searchWithBroadening(league, item, matchedStats) {
   while (lo <= hi) {
     await sleep(REQUEST_SPACING_MS);
     const mid = Math.floor((lo + hi) / 2);
-    const result = await tradeApi.search(league, buildQuery(item, capped.slice(0, mid)));
+    report(`Narrowing match (trying ${mid} of ${capped.length} mods)...`);
+    const result = await tradeApi.search(league, buildQuery(item, capped.slice(0, mid)), onProgress);
 
     if (result.result.length > 0 && mid > bestAnyK) {
       bestAnyK = mid;
@@ -164,7 +169,9 @@ function summarizeListings(listings) {
   return { ...base, suggestion: priced[medianIndex], low: priced[0], high: priced[priced.length - 1] };
 }
 
-async function checkPrice(rawText, league, statMatcher, baseTypeResolver) {
+async function checkPrice(rawText, league, statMatcher, baseTypeResolver, onProgress) {
+  const report = onProgress || (() => {});
+  report('Parsing item...');
   const item = parseItem(rawText);
 
   // Magic items show as a single combined line - "Rotund Crusader Plate of the Seal" -
@@ -190,9 +197,10 @@ async function checkPrice(rawText, league, statMatcher, baseTypeResolver) {
     }
   }
 
-  const { result, usedStatCount } = await searchWithBroadening(league, item, matchedStats);
+  const { result, usedStatCount } = await searchWithBroadening(league, item, matchedStats, onProgress);
   const ids = result.result.slice(0, FETCH_COUNT);
-  const listings = await tradeApi.fetchListings(ids, result.id);
+  report(`Fetching ${ids.length} listing${ids.length === 1 ? '' : 's'}...`);
+  const listings = await tradeApi.fetchListings(ids, result.id, onProgress);
   const { priced, suggestion, low, high, icon, frameType } = summarizeListings(listings);
 
   return {
